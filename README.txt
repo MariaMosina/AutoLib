@@ -1,0 +1,1 @@
+My library for fast work.
