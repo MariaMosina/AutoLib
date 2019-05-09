@@ -1,46 +1,33 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import KFold, StratifiedKFold
 import pandas as pd
 
-
-# In[2]:
+SCALER = {'MinMax': MinMaxScaler,
+          'Standard': StandardScaler}
+SPLITTER = {'KFold': KFold,
+            'StratifiedKFold': StratifiedKFold}
 
 
 class Preprocessor:
-    def __init__(self, scaling = None, split = None, n_splits = 2):
+    def __init__(self, scaling=None, split=None, n_splits=2):
         self.scaling = scaling
         self.split = split
         self.n_splits = n_splits
-        
-    def get_scaled(self, X, X_test=None):
-        if self.scaling == 'MinMax':
-            scaler = MinMaxScaler()
-        elif self.scaling == 'Standard':
-            scaler = StandardScaler()
-        if X_test is not None:
-            return pd.DataFrame(scaler.fit_transform(X), index = X.index, columns = X.columns), pd.DataFrame(scaler.transform(X_test), index = X_test.index, columns = X_test.columns)
+
+    def get_scaled(self, x, x_test=None):
+        scaler = SCALER[self.scaling]()
+        if x_test is not None:
+            return pd.DataFrame(scaler.fit_transform(x),
+                                index=x.index,
+                                columns=x.columns), pd.DataFrame(scaler.transform(x_test),
+                                                                 index=x_test.index,
+                                                                 columns=x_test.columns)
         else:
-            return pd.DataFrame(scaler.fit_transform(X), index = X.index, columns = X.columns)
-    
-    def get_split(self, X, y=None):
-        if self.split == 'Kfold':
-            kf = KFold(n_splits = self.n_splits)
-        elif self.split == 'StratifiedKFold':
-            kf = StratifiedKFold(n_splits = self.n_splits)
+            return pd.DataFrame(scaler.fit_transform(x), index=x.index, columns=x.columns)
+
+    def get_split(self, x, y=None):
+        kf = SPLITTER[self.split](n_splits=self.n_splits)
         if y is not None:
-            return list(kf.split(X, y))
+            return list(kf.split(x, y))
         else:
-            return list(kf.split(X))
-
-
-# In[ ]:
-
-
-
-
+            return list(kf.split(x))
