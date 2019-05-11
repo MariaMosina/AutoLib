@@ -66,14 +66,17 @@ class SklearnModel(UnifiedModelInterface):
         del self.model
 
 
-MAP_LGBM_MODEL_CLASS = {'binary': LGBMClassifier,
-                        'regression': LGBMRegressor}
+MAP_BOOSTING_MODEL_CLASS = {('LGBM', 'binary'): LGBMClassifier,
+                            ('LGBM', 'regression'): LGBMRegressor,
+                            ('XGB', 'binary'): XGBClassifier,
+                            ('XGB', 'regression'): XGBRegressor}
 
 
-class LightGBM(UnifiedModelInterface):
-    def __init__(self, objective, class_num, **kwargs):
+class Boosting(UnifiedModelInterface):
+    def __init__(self, objective, model_name, class_num, **kwargs):
         self.objective = objective
-        self.model = MAP_LGBM_MODEL_CLASS[objective](**kwargs)
+        self.model_name = model_name
+        self.model = MAP_BOOSTING_MODEL_CLASS[(model_name, objective)](**kwargs)
         self.class_num = class_num
 
     def fit(self, x_train, y_train, x_val, y_val):
@@ -91,42 +94,12 @@ class LightGBM(UnifiedModelInterface):
             raise NotImplementedError
 
     def save(self, fold_dir):
-        model_filename = os.path.join(fold_dir, 'lgbm_model.txt')
+        model_filename = os.path.join(fold_dir, 'boosting_model.txt')
         with open(model_filename, 'wb') as file:
-            self.model.booster_.save_model(file)
-
-    def train_end(self):
-        del self.model
-
-
-MAP_XGB_MODEL_CLASS = {'binary': XGBClassifier,
-                       'regression': XGBRegressor}
-
-
-class XGBoost(UnifiedModelInterface):
-    def __init__(self, objective, class_num, **kwargs):
-        self.model = MAP_XGB_MODEL_CLASS[objective](**kwargs)
-        self.objective = objective
-        self.class_num = class_num
-
-    def fit(self, x_train, y_train, x_val, y_val):
-        return self.model.fit(x_train, y_train,
-                              eval_set=[(x_val, y_val)],
-                              early_stopping_rounds=10)
-
-    def predict(self, x_test):
-        return self.model.predict(x_test)
-
-    def predict_proba(self, x_test):
-        if self.objective == 'binary':
-            return self.model.predict_proba(x_test)[:, 1]
-        else:
-            raise NotImplementedError
-
-    def save(self, fold_dir):
-        model_filename = os.path.join(fold_dir, 'xgb_model.txt')
-        with open(model_filename, 'wb') as file:
-            self.model.save_model(file)
+            if self.model_name == 'LGBM':
+                self.model.booster_.save_model(file)
+            elif self.model_name == 'XGB':
+                self.model.save_model(file)
 
     def train_end(self):
         del self.model
